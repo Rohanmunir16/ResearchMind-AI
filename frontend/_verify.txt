@@ -1,0 +1,46 @@
+SUMMARY TOOLS COUNT: 3
+Find Research Gaps on paper footer: False
+Translate in summary tools: True
+AISUMMARY props: True
+requireExisting: False
+--- footer snippet ---
+"paper-card__footer paper-card__footer--paper-actions">
+        <button type="button" className="button-primary" onClick={handleAssistantClick} disabled={isLoading}>
+          AI Research Assistant
+        </button>
+        <button type="button" className="button-secondary" onClick={handleSavePaper}>
+          {alreadySaved ? "Saved" : "Save"}
+        </button>
+        <button type="button" className="button-secondary" onClick={() => onCompare(paper)}>
+          Compare
+        </button>
+        <button type="button" className="button-secondary" onClick={() => onCitation(paper)}>
+          Generate Citation
+        </button>
+        <button type="button" className="button-secondary" onClick={() => onCitationCou
+--- tools snippet ---
+summary-tools">
+        <p className="summary-tools__label">Summary Tools</p>
+        <div className="summary-tools__row">
+          <button
+            type="button"
+            className="action-chip"
+            disabled={loading}
+            onClick={() => onTranslate && onTranslate(paper, summary)}
+          >
+            Translate Summary
+          </button>
+          <button
+            type="button"
+            className="action-chip"
+            disabled={loading}
+            onClick={() => onResearchGaps && onResearchGaps(paper, summary)}
+          >
+            Find Research Gaps
+          </button>
+          <button type="button" className="action-chip" onClick={handleCopySummary} disabled={loading}>
+            {copyLabel}
+          </button>
+          <button type="button" className="action-chip" onClick={handleDownloadPdf} disabled={loading}>
+            Download Summary
+ 
