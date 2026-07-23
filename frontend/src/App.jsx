@@ -30,28 +30,8 @@ const sanitizeFilename = (title) => {
     .slice(0, 100);
 };
 
-const copyTextToClipboard = async (text) => {
-  if (!text) return false;
-
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return true;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
-  return true;
-};
-
 const buildSummaryText = (paper, summary) => {
-  const lines = [paper.title || "ResearchMind Summary", ""];
+  const lines = [paper.title || "ResearchMind AI Summary", ""];
 
   if (summary.overview) {
     lines.push("Overview:", summary.overview, "");
@@ -107,29 +87,22 @@ const buildShareMessage = (paper, summary) => {
   const full = buildSummaryText(paper, summary);
   const parts = full.split("\n");
   const summaryBody = parts.length > 1 ? parts.slice(parts[1] === "" ? 2 : 1).join("\n").trim() : full;
-  const linkLine = paper.pdf ? ["", "Link:", paper.pdf].join("\n") : "";
   return [
-    "ResearchMind",
+    "ResearchMind AI",
     "",
     "Paper:",
     paper.title || "Untitled paper",
     "",
     "AI Summary",
     "",
-    summaryBody || "AI Summary not available.",
-    linkLine,
+    summaryBody,
     "",
-    "Generated using ResearchMind.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+    "Generated using ResearchMind AI.",
+  ].join("\n");
 };
 
-const SpeechRecognition = typeof window !== "undefined" ? window.SpeechRecognition || window.webkitSpeechRecognition || null : null;
-
 const getApiBase = () => {
-  const host = window.location.hostname || "127.0.0.1";
-  return `http://${host}:8000`;
+  return import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 };
 
 const createSummaryPdf = (paper, summary) => {
@@ -197,12 +170,12 @@ const createSummaryPdf = (paper, summary) => {
 
   doc.setFontSize(18);
   doc.setTextColor("#111827");
-  doc.text("ResearchMind", margin, y);
+  doc.text("ResearchMind AI", margin, y);
   y += 28;
 
   doc.setFontSize(11);
   doc.setTextColor("#6b7280");
-  doc.text(`Generated using ResearchMind`, margin, y);
+  doc.text(`Generated using ResearchMind AI`, margin, y);
   y += 18;
   doc.text(`Generation Date: ${new Date().toLocaleDateString()}`, margin, y);
   y += 26;
@@ -244,12 +217,7 @@ function SearchBar({ topic, onTopicChange, onSearch, searching }) {
   return (
     <div className="search-panel">
       <div className="search-input-wrapper">
-        <span className="search-input-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 0 8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M16.5 16.5 20 20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        </span>
+        <span className="search-input-icon" aria-hidden="true">🔍</span>
         <input
           type="text"
           placeholder="Search by topic, keyword, or paper title..."
@@ -429,12 +397,12 @@ function SavedPaperCard({ paper, onDelete, onOpenPdf, onGenerateSummary, onCompa
         <div className="ai-summary-card ai-summary-card--saved">
           <div className="ai-summary-card__sections">
             <section className="ai-summary-card__section-card">
-              <div className="section-heading">Overview</div>
+              <div className="section-heading">📖 Overview</div>
               <p>{summaryData.overview}</p>
             </section>
             {summaryData.key_contributions?.length > 0 && (
               <section className="ai-summary-card__section-card">
-                <div className="section-heading">Key Contributions</div>
+                <div className="section-heading">🎯 Key Contributions</div>
                 <ul>
                   {summaryData.key_contributions.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -444,7 +412,7 @@ function SavedPaperCard({ paper, onDelete, onOpenPdf, onGenerateSummary, onCompa
             )}
             {summaryData.methodology?.length > 0 && (
               <section className="ai-summary-card__section-card">
-                <div className="section-heading">Methodology</div>
+                <div className="section-heading">🧠 Methodology</div>
                 <ul>
                   {summaryData.methodology.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -454,7 +422,7 @@ function SavedPaperCard({ paper, onDelete, onOpenPdf, onGenerateSummary, onCompa
             )}
             {summaryData.evaluation?.length > 0 && (
               <section className="ai-summary-card__section-card">
-                <div className="section-heading">Evaluation</div>
+                <div className="section-heading">📊 Evaluation</div>
                 <ul>
                   {summaryData.evaluation.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -464,7 +432,7 @@ function SavedPaperCard({ paper, onDelete, onOpenPdf, onGenerateSummary, onCompa
             )}
             {summaryData.applications?.length > 0 && (
               <section className="ai-summary-card__section-card">
-                <div className="section-heading">Applications</div>
+                <div className="section-heading">💼 Applications</div>
                 <ul>
                   {summaryData.applications.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -474,7 +442,7 @@ function SavedPaperCard({ paper, onDelete, onOpenPdf, onGenerateSummary, onCompa
             )}
             {summaryData.limitations?.length > 0 && (
               <section className="ai-summary-card__section-card">
-                <div className="section-heading">Limitations</div>
+                <div className="section-heading">⚠️ Limitations</div>
                 <ul>
                   {summaryData.limitations.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -484,7 +452,7 @@ function SavedPaperCard({ paper, onDelete, onOpenPdf, onGenerateSummary, onCompa
             )}
             {summaryData.future_work?.length > 0 && (
               <section className="ai-summary-card__section-card">
-                <div className="section-heading">Future Work</div>
+                <div className="section-heading">🚀 Future Work</div>
                 <ul>
                   {summaryData.future_work.map((item, idx) => (
                     <li key={idx}>{item}</li>
@@ -494,7 +462,7 @@ function SavedPaperCard({ paper, onDelete, onOpenPdf, onGenerateSummary, onCompa
             )}
             {summaryData.difficulty && (
               <section className="ai-summary-card__section-card">
-                <div className="section-heading">Difficulty</div>
+                <div className="section-heading">⭐ Difficulty</div>
                 <div className="difficulty-row">
                   <span className={`difficulty-badge badge-${summaryData.difficulty.level?.toLowerCase().includes("intermediate") ? "intermediate" : summaryData.difficulty.level?.toLowerCase().includes("beginner") ? "beginner" : "advanced"}`}>
                     {summaryData.difficulty.level}
@@ -553,13 +521,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
   const shareViaEmail = () => {
     if (!requireSummary()) return false;
     const subject = `Research Paper Summary - ${paper.title || "Untitled paper"}`;
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMessage)}`;
-    const anchor = document.createElement("a");
-    anchor.href = mailtoUrl;
-    anchor.style.display = "none";
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMessage)}`;
     return true;
   };
 
@@ -574,7 +536,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
 
     try {
       await navigator.share({
-        title: paper.title || "ResearchMind Summary",
+        title: paper.title || "ResearchMind AI Summary",
         text: shareMessage,
       });
       addToast("✓ Shared Successfully");
@@ -619,13 +581,13 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
       <h4 className="assistant-workspace__section-title">AI Summary</h4>
       <div className="ai-summary-card__sections">
         <section className="ai-summary-card__section-card">
-          <div className="section-heading">Overview</div>
+          <div className="section-heading">📖 Overview</div>
           <p>{summary.overview}</p>
         </section>
 
         {summary.key_contributions?.length > 0 && (
           <section className="ai-summary-card__section-card">
-            <div className="section-heading">Key Contributions</div>
+            <div className="section-heading">🎯 Key Contributions</div>
             <ul>
               {summary.key_contributions.map((item, idx) => (
                 <li key={idx}>{item}</li>
@@ -636,7 +598,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
 
         {summary.methodology?.length > 0 && (
           <section className="ai-summary-card__section-card">
-            <div className="section-heading">Methodology</div>
+            <div className="section-heading">🧠 Methodology</div>
             <ul>
               {summary.methodology.map((item, idx) => (
                 <li key={idx}>{item}</li>
@@ -647,7 +609,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
 
         {summary.evaluation?.length > 0 && (
           <section className="ai-summary-card__section-card">
-            <div className="section-heading">Evaluation</div>
+            <div className="section-heading">📊 Evaluation</div>
             <ul>
               {summary.evaluation.map((item, idx) => (
                 <li key={idx}>{item}</li>
@@ -658,7 +620,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
 
         {summary.applications?.length > 0 && (
           <section className="ai-summary-card__section-card">
-            <div className="section-heading">Applications</div>
+            <div className="section-heading">💼 Applications</div>
             <ul>
               {summary.applications.map((item, idx) => (
                 <li key={idx}>{item}</li>
@@ -669,7 +631,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
 
         {summary.limitations?.length > 0 && (
           <section className="ai-summary-card__section-card">
-            <div className="section-heading">Limitations</div>
+            <div className="section-heading">⚠️ Limitations</div>
             <ul>
               {summary.limitations.map((item, idx) => (
                 <li key={idx}>{item}</li>
@@ -680,7 +642,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
 
         {summary.future_work?.length > 0 && (
           <section className="ai-summary-card__section-card">
-            <div className="section-heading">Future Work</div>
+            <div className="section-heading">🚀 Future Work</div>
             <ul>
               {summary.future_work.map((item, idx) => (
                 <li key={idx}>{item}</li>
@@ -691,7 +653,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
 
         {summary.difficulty && (
           <section className="ai-summary-card__section-card">
-            <div className="section-heading">Difficulty</div>
+            <div className="section-heading">⭐ Difficulty</div>
             <div className="difficulty-row">
               <span className={`difficulty-badge badge-${difficultyType}`}>{difficultyLabel}</span>
             </div>
@@ -710,14 +672,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
             disabled={loading}
             onClick={() => onTranslate && onTranslate(paper, summary)}
           >
-            <span className="action-chip__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M12 3v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="1.8" />
-              </svg>
-            </span>
-            <span className="action-chip__label">Translate</span>
+            🌐 Translate Summary
           </button>
           <button
             type="button"
@@ -725,47 +680,22 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
             disabled={loading}
             onClick={() => onResearchGaps && onResearchGaps(paper, summary)}
           >
-            <span className="action-chip__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z" stroke="currentColor" strokeWidth="1.8" />
-                <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span className="action-chip__label">Research Gaps</span>
+            🔍 Find Research Gaps
           </button>
           <button type="button" className="action-chip" onClick={handleCopySummary} disabled={loading}>
-            <span className="action-chip__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="8" y="4" width="10" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                <path d="M6 8h-1a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span className="action-chip__label">{copyLabel}</span>
+            📋 {copyLabel}
           </button>
           <button type="button" className="action-chip" onClick={handleDownloadPdf} disabled={loading}>
-            <span className="action-chip__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4v10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="m8 10 4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M5 16v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span className="action-chip__label">Download</span>
+            📄 Download Summary
           </button>
           <div className="share-dropdown">
             <button type="button" className="action-chip" onClick={() => setShareMenuOpen((prev) => !prev)} disabled={loading}>
-              <span className="action-chip__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M7 12v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  <path d="m10 8 2-2 2 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 6v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-              </span>
-              <span className="action-chip__label">{shareLabel}</span>
+              📤 {shareLabel}
             </button>
             {shareMenuOpen && (
               <div className="share-menu">
                 <button type="button" className="share-menu-item" onClick={() => handleShareAction("whatsapp")}>Share via WhatsApp</button>
+                <button type="button" className="share-menu-item" onClick={() => handleShareAction("email")}>Share via Email</button>
                 <button type="button" className="share-menu-item" onClick={handleNativeShare}>
                   Native Share
                 </button>
@@ -788,17 +718,11 @@ function ResearchMentorChat({ paper, summary, addToast }) {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
-  const [voiceState, setVoiceState] = useState("idle");
-  const recognitionRef = useRef(null);
-  const voiceResultRef = useRef(false);
-  const stoppedByUserRef = useRef(false);
-  const voiceStateRef = useRef("idle");
   const chatEndRef = useRef(null);
-  const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [chatHistory, chatLoading]);
 
@@ -812,8 +736,9 @@ function ResearchMentorChat({ paper, summary, addToast }) {
     setChatError(null);
 
     try {
-      const backendHost = window.location.hostname || "127.0.0.1";
-      const response = await fetch(`http://${backendHost}:8000/chat`, {
+   
+      
+      const response = await fetch(`${getApiBase()}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -847,97 +772,7 @@ function ResearchMentorChat({ paper, summary, addToast }) {
     }
   };
 
-  const resetVoiceState = () => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.abort();
-      } catch {
-        // ignore any abort errors
-      }
-      recognitionRef.current = null;
-    }
-    voiceResultRef.current = false;
-    stoppedByUserRef.current = false;
-    voiceStateRef.current = "idle";
-    setVoiceState("idle");
-  };
-
-  const startVoiceListening = () => {
-    if (!SpeechRecognition) {
-      addToast("Voice input is not supported in this browser.");
-      return;
-    }
-
-    if (chatLoading) {
-      return;
-    }
-
-    if (voiceState === "listening") {
-      stoppedByUserRef.current = true;
-      resetVoiceState();
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    voiceResultRef.current = false;
-    stoppedByUserRef.current = false;
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.continuous = false;
-
-    recognition.onstart = () => {
-      voiceStateRef.current = "listening";
-      setVoiceState("listening");
-    };
-
-    recognition.onresult = async (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript?.trim();
-      if (transcript) {
-        voiceResultRef.current = true;
-        voiceStateRef.current = "processing";
-        setVoiceState("processing");
-        setChatInput(transcript);
-        await sendChat(transcript);
-        if (voiceStateRef.current === "processing") {
-          voiceStateRef.current = "idle";
-          setVoiceState("idle");
-        }
-      }
-    };
-
-    recognition.onerror = (event) => {
-      const errorType = event.error;
-      if (errorType === "not-allowed" || errorType === "security") {
-        addToast("Microphone access was denied.");
-      } else if (errorType === "no-speech" || errorType === "audio-capture") {
-        addToast("No speech detected. Please try again.");
-      } else {
-        addToast("Voice input failed. Please try again.");
-      }
-      resetVoiceState();
-    };
-
-    recognition.onend = () => {
-      const shouldShowNoSpeech = !voiceResultRef.current && !stoppedByUserRef.current;
-      if (voiceStateRef.current !== "processing") {
-        resetVoiceState();
-      } else {
-        recognitionRef.current = null;
-      }
-      if (shouldShowNoSpeech) {
-        addToast("No speech detected. Please try again.");
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch {
-      addToast("Voice input could not be started.");
-      resetVoiceState();
-    }
-  };
+  const promptChips = ["Explain Simply", "Compare with CNN", "Compare with Transformers", "Compare with ViT", "Compare with ResNet"];
 
   const chatMessages = chatHistory.map((item, idx) => (
     <div key={`${item.role}-${idx}`} className={`chat-message chat-message--${item.role}`}>
@@ -945,32 +780,22 @@ function ResearchMentorChat({ paper, summary, addToast }) {
         <div className="chat-message__role">{item.role === "assistant" ? "ResearchMind AI" : "You"}</div>
         <p>{item.message}</p>
       </div>
-      {item.role === "assistant" && (
-        <div className="chat-message__actions">
-          <button
-            type="button"
-            className="chat-message__action"
-            onClick={async () => {
-              await copyTextToClipboard(item.message);
-              addToast("✓ Copied to clipboard");
-            }}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 4h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2v10h8V6H9Zm-2 3H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1h-2v1H5v-7h2V9Z" />
-            </svg>
-            <span>Copy</span>
-          </button>
-        </div>
-      )}
     </div>
   ));
+
+  const copyLatestResponse = async () => {
+    const latest = [...chatHistory].reverse().find((item) => item.role === "assistant");
+    if (!latest || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(latest.message);
+    addToast("✓ Response Copied");
+  };
 
   return (
     <div className="assistant-chat chat-panel">
       <h4 className="assistant-workspace__section-title">Research Chat</h4>
       <div className="chat-panel__body">
-        <div className="chat-history" aria-live="polite" ref={chatContainerRef}>
-          {chatMessages.length > 0 ? chatMessages : <p className="chat-empty">Start by asking a question.</p>}
+        <div className="chat-history" aria-live="polite">
+          {chatMessages.length > 0 ? chatMessages : <p className="chat-empty">Start by asking a question or using one of the suggested prompts.</p>}
           {chatLoading && (
             <div className="chat-loading compact-loading">
               <span className="spinner" aria-hidden="true" />
@@ -981,293 +806,79 @@ function ResearchMentorChat({ paper, summary, addToast }) {
           <div ref={chatEndRef} />
         </div>
 
-        <div className="chat-composer">
-          <div className="chat-composer__input">
-            <textarea
-              value={chatInput}
-              onChange={(event) => setChatInput(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask anything about this paper..."
-              rows={1}
-            />
-          </div>
-          <div className="chat-composer__actions">
-            {SpeechRecognition && (
-              <button
-                type="button"
-                className={`chat-action-button mic-button ${voiceState === "listening" ? "mic-button--listening" : ""} ${voiceState === "processing" ? "mic-button--processing" : ""}`}
-                onClick={startVoiceListening}
-                disabled={chatLoading}
-                aria-label={voiceState === "listening" ? "Stop voice input" : voiceState === "processing" ? "Processing voice input" : "Voice input"}
-                title={voiceState === "listening" ? "Stop voice input" : voiceState === "processing" ? "Processing voice input" : "Voice input"}
-              >
-                {voiceState === "listening" ? (
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm-5 1h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M9 19h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M12 19v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
-                ) : voiceState === "processing" ? (
-                  <span className="voice-icon-check" aria-hidden="true">✓</span>
-                ) : (
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm-5 1h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M9 19h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M12 19v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
-                )}
+        <div className="chat-suggestions">
+          <p className="chat-suggestions__label">Suggested Questions</p>
+          <div className="chat-prompt-chips">
+            {promptChips.slice(0, 4).map((chip) => (
+              <button key={chip} type="button" className="chip-button" onClick={() => sendChat(chip)}>
+                {chip}
               </button>
-            )}
-            <button type="button" className="chat-action-button chat-action-button--primary" onClick={() => sendChat(chatInput)} disabled={chatLoading || !chatInput.trim()}>
-              Send
-            </button>
+            ))}
           </div>
         </div>
-        {voiceState !== "idle" && (
-          <div className={`voice-status ${voiceState === "processing" ? "voice-status--processing" : ""}`}>
-            {voiceState === "processing" ? (
-              <>
-                <span className="voice-status__check" aria-hidden="true">✓</span>
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <div className="voice-status__bars" aria-hidden="true">
-                  {[0, 1, 2, 3].map((bar) => (
-                    <span key={bar} className="voice-status__bar" style={{ animationDelay: `${bar * 0.08}s` }} />
-                  ))}
-                </div>
-                <span>Listening...</span>
-              </>
-            )}
-          </div>
-        )}
+
+        <div className="chat-composer">
+          <textarea
+            value={chatInput}
+            onChange={(event) => setChatInput(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything about this paper..."
+            rows={1}
+          />
+          <button type="button" className="button-primary" onClick={() => sendChat(chatInput)} disabled={chatLoading || !chatInput.trim()}>
+            Send
+          </button>
+          <button type="button" className="button-secondary" onClick={copyLatestResponse} disabled={!chatHistory.some((item) => item.role === "assistant")}>
+            Copy Response
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
 
-const comparisonSectionLabels = {
-  research_problem: "Research Problem",
-  objective: "Objective",
-  methodology: "Methodology",
-  dataset: "Dataset",
-  model: "Model / Algorithm",
-  model_architecture: "Model / Algorithm",
-  contributions: "Key Contributions",
-  results: "Results",
-  strengths: "Strengths",
-  weaknesses: "Weaknesses",
-  limitations: "Weaknesses",
-  advantages: "Strengths",
-  applications: "Applications",
-  future_work: "Future Work",
-};
-
-const comparisonSectionOrder = [
-  "research_problem",
-  "objective",
-  "methodology",
-  "dataset",
-  "model",
-  "model_architecture",
-  "contributions",
-  "results",
-  "strengths",
-  "weaknesses",
-  "limitations",
-  "advantages",
-  "applications",
-  "future_work",
-];
-
-const normalizeTextValue = (value) => {
-  if (value == null || value === "") return "";
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => normalizeTextValue(item))
-      .filter(Boolean)
-      .join("\n");
-  }
-  if (typeof value === "object") {
-    const nestedText = value.text || value.summary || value.description || value.recommendation;
-    if (typeof nestedText === "string") {
-      return nestedText.trim();
-    }
-    return "";
-  }
-  return String(value).trim();
-};
-
-const normalizeSideBySideValue = (value) => {
-  if (!value) {
-    return { paperA: "", paperB: "" };
-  }
-
-  if (typeof value === "string") {
-    return { paperA: value, paperB: "" };
-  }
-
-  if (Array.isArray(value)) {
-    return { paperA: normalizeTextValue(value), paperB: "" };
-  }
-
-  if (typeof value === "object") {
-    const paperA = normalizeTextValue(value.paper_a || value.paperA || value.a || value.left || value.first);
-    const paperB = normalizeTextValue(value.paper_b || value.paperB || value.b || value.right || value.second);
-    if (paperA || paperB) {
-      return { paperA, paperB };
-    }
-
-    const fallbackText = normalizeTextValue(value.text || value.summary || value.description);
-    return { paperA: fallbackText, paperB: "" };
-  }
-
-  return { paperA: normalizeTextValue(value), paperB: "" };
-};
-
-const parseComparisonData = (comparison) => {
-  if (!comparison) return null;
-
-  if (typeof comparison === "string") {
-    const trimmed = comparison.trim();
-    if (!trimmed) return null;
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      return parseComparisonData(parsed);
-    } catch {
-      return { raw_text: trimmed };
-    }
-  }
-
-  if (typeof comparison !== "object" || Array.isArray(comparison)) {
-    return null;
-  }
-
-  return comparison;
-};
-
-const extractComparisonRows = (comparison) => {
-  const parsed = parseComparisonData(comparison);
-  if (!parsed) {
-    return [];
-  }
-
-  const rows = [];
-  const seen = new Set();
-
-  comparisonSectionOrder.forEach((key) => {
-    if (!(key in parsed)) return;
-    const normalized = normalizeSideBySideValue(parsed[key]);
-    if (!normalized.paperA && !normalized.paperB) return;
-    seen.add(key);
-    rows.push({
-      key,
-      label: comparisonSectionLabels[key] || key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
-      paperA: normalized.paperA,
-      paperB: normalized.paperB,
-    });
-  });
-
-  Object.entries(parsed).forEach(([key, value]) => {
-    if (seen.has(key)) return;
-    const normalized = normalizeSideBySideValue(value);
-    if (!normalized.paperA && !normalized.paperB) return;
-    rows.push({
-      key,
-      label: comparisonSectionLabels[key] || key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
-      paperA: normalized.paperA,
-      paperB: normalized.paperB,
-    });
-  });
-
-  return rows;
-};
-
-const extractRecommendation = (comparison) => {
-  const parsed = parseComparisonData(comparison);
-  if (!parsed) return "";
-
-  const candidateKeys = ["final_opinion", "recommendation", "ai_recommendation", "summary", "overall_recommendation"];
-  for (const key of candidateKeys) {
-    const value = parsed[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-    if (typeof value === "object") {
-      const directValue = normalizeTextValue(value.text || value.recommendation || value.summary || value.description);
-      if (directValue) return directValue;
-    }
-  }
-
-  const rowMap = {};
-  Object.entries(parsed).forEach(([key, value]) => {
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      const paperA = normalizeTextValue(value.paper_a || value.paperA || value.a || value.left || value.first);
-      const paperB = normalizeTextValue(value.paper_b || value.paperB || value.b || value.right || value.second);
-      rowMap[key] = { paperA, paperB };
-    } else {
-      rowMap[key] = { paperA: normalizeTextValue(value), paperB: "" };
-    }
-  });
-
-  const getFirstLine = (text) => text.split(/\n+/).map((line) => line.trim()).filter(Boolean)[0] || "";
-  const strengthA = getFirstLine(rowMap.strengths?.paperA || rowMap.advantages?.paperA || "");
-  const strengthB = getFirstLine(rowMap.strengths?.paperB || rowMap.advantages?.paperB || "");
-  const weaknessA = getFirstLine(rowMap.weaknesses?.paperA || rowMap.limitations?.paperA || "");
-  const weaknessB = getFirstLine(rowMap.weaknesses?.paperB || rowMap.limitations?.paperB || "");
-
-  if (strengthA || strengthB) {
-    const clauses = [];
-    if (strengthA) clauses.push(`Paper A is more suitable when you want ${strengthA.toLowerCase()}.`);
-    if (strengthB) clauses.push(`Paper B is more appropriate when you need ${strengthB.toLowerCase()}.`);
-    if (weaknessA || weaknessB) {
-      if (weaknessA) clauses.push(`Paper A may be less ideal if ${weaknessA.toLowerCase()}.`);
-      if (weaknessB) clauses.push(`Paper B may be less ideal if ${weaknessB.toLowerCase()}.`);
-    }
-    clauses.push("For most practical research use cases, choose the paper whose strengths align best with your objective.");
-    return clauses.join(" ");
-  }
-
-  if (typeof parsed === "object" && parsed.raw_text) {
-    return "The comparison highlights trade-offs between the two papers. Review the table above to choose the paper that best fits your use case.";
-  }
-
-  return "The comparison highlights distinct strengths in each paper. Review the table above to choose the option that best matches your research goals.";
-};
-
 function CompareModal({ open, onClose, papers, comparison, loading, error }) {
   if (!open) return null;
   const [a = {}, b = {}] = papers;
 
-  const sectionRows = useMemo(() => extractComparisonRows(comparison), [comparison]);
-  const finalOpinion = useMemo(() => extractRecommendation(comparison), [comparison]);
+  const SECTION_ORDER = [
+    "research_problem",
+    "methodology",
+    "model_architecture",
+    "dataset",
+    "results",
+    "advantages",
+    "limitations",
+    "future_work",
+  ];
 
   const formatSectionLabel = (key) =>
-    comparisonSectionLabels[key] || key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+    key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
   const renderCellValue = (value) => {
-    if (!value) {
-      return <span className="compare-table__empty">Not available</span>;
-    }
-
-    const lines = String(value)
-      .split(/\n+/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (lines.length > 1) {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return <p>Not available</p>;
       return (
-        <div className="compare-table__stack">
-          {lines.map((line, index) => (
-            <p key={`${line}-${index}`}>{line}</p>
+        <ul>
+          {value.map((item, index) => (
+            <li key={index}>{item}</li>
           ))}
-        </div>
+        </ul>
       );
     }
-
+    if (value == null || value === "") return <p>Not available</p>;
     return <p>{String(value)}</p>;
   };
+
+  const sectionKeys = comparison
+    ? SECTION_ORDER.filter((key) => comparison[key] != null)
+    : [];
+
+  const finalOpinion =
+    typeof comparison?.final_opinion === "string"
+      ? comparison.final_opinion
+      : comparison?.final_opinion?.recommendation || comparison?.final_opinion?.text || null;
 
   return (
     <div className="modal-overlay">
@@ -1294,33 +905,34 @@ function CompareModal({ open, onClose, papers, comparison, loading, error }) {
 
         {!loading && !error && comparison && (
           <>
-            {sectionRows.length > 0 ? (
-              <div className="compare-table-wrap">
-                <table className="compare-table">
-                  <thead>
-                    <tr>
-                      <th>Category</th>
-                      <th>Paper A</th>
-                      <th>Paper B</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sectionRows.map((row) => (
-                      <tr key={row.key}>
-                        <td className="compare-table__category">{row.label}</td>
-                        <td>{renderCellValue(row.paperA)}</td>
-                        <td>{renderCellValue(row.paperB)}</td>
+            <div className="compare-table-wrap">
+              <table className="compare-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Paper A</th>
+                    <th>Paper B</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sectionKeys.map((key) => {
+                    const value = comparison[key];
+                    const isSideBySide =
+                      value &&
+                      typeof value === "object" &&
+                      !Array.isArray(value) &&
+                      ("paper_a" in value || "paper_b" in value);
+                    return (
+                      <tr key={key}>
+                        <td className="compare-table__category">{formatSectionLabel(key)}</td>
+                        <td>{renderCellValue(isSideBySide ? value.paper_a : value)}</td>
+                        <td>{renderCellValue(isSideBySide ? value.paper_b : null)}</td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="empty-state compare-empty-state">
-                <h3>No comparison details available.</h3>
-                <p>The response did not include structured comparison information.</p>
-              </div>
-            )}
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
             {finalOpinion && (
               <div className="ai-recommendation">
@@ -1574,22 +1186,16 @@ function TranslateModal({ open, onClose, paper, language, onLanguageChange, tran
         {paper?.title && <p className="feature-modal-subtitle">{paper.title}</p>}
 
         <div className="language-select-row">
-          <div className="language-select-label">Language</div>
-          <div className="language-options">
+          <label htmlFor="translate-language">Language</label>
+          <select
+            id="translate-language"
+            value={language}
+            onChange={(event) => onLanguageChange(event.target.value)}
+          >
             {languages.map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                className={`language-option ${language === lang ? "language-option--active" : ""}`}
-                onClick={() => onLanguageChange(lang)}
-              >
-                <span className="language-option__radio" aria-hidden="true">
-                  {language === lang ? "●" : "○"}
-                </span>
-                <span>{lang}</span>
-              </button>
+              <option key={lang} value={lang}>{lang}</option>
             ))}
-          </div>
+          </select>
         </div>
 
         {loading && (
@@ -1632,7 +1238,7 @@ function ResearchGapsModal({ open, onClose, data, loading, error }) {
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <div className="modal-header modal-header--beige">
+        <div className="modal-header">
           <h3>Research Gaps</h3>
           <button type="button" className="text-button" onClick={onClose}>Close</button>
         </div>
@@ -1738,7 +1344,7 @@ function PaperCard({
       try {
         response = await fetch(url);
       } catch {
-        response = await fetch(`http://127.0.0.1:8000/search?topic=${encodeURIComponent(paper.title)}`);
+        response = await fetch(`${getApiBase()}/search?topic=${encodeURIComponent(paper.title)}`);
       }
       if (!response.ok) {
         throw new Error();
@@ -1843,60 +1449,58 @@ function PaperCard({
         </div>
       )}
 
-      {!isRelated && (
-        <div className="related-panel">
-          <button type="button" className="text-button" onClick={handleRelatedClick}>
-            {relatedOpen ? "Hide Related Papers" : "Related Papers"}
-          </button>
-          {relatedOpen && (
-            <div className="related-content">
-              {relatedLoading && (
-                <div className="related-loading">
-                  <span className="spinner" /> Finding Related Papers...
-                </div>
-              )}
-              {relatedError && <p className="related-error">{relatedError}</p>}
-              {relatedVisiblePapers.length > 0 && (
-                <div className="results-list related-list">
-                  {relatedVisiblePapers.map((relatedPaper, relIndex) => {
-                    const relatedIndex = `${index}-rel-${relIndex}`;
-                    return (
-                      <PaperCard
-                        key={relatedIndex}
-                        paper={relatedPaper}
-                        index={relatedIndex}
-                        generateSummary={generateSummary}
-                        summaries={summaries}
-                        loadingSummary={loadingSummary}
-                        savedPapers={savedPapers}
-                        onSavePaper={onSavePaper}
-                        onCompare={onCompare}
-                        onCitation={onCitation}
-                        onCitationCount={onCitationCount}
-                        onTranslate={onTranslate}
-                        onResearchGaps={onResearchGaps}
-                        addToast={addToast}
-                        isRelated={true}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-              {relatedPapers.length > 0 && !relatedLoading && (
-                <div className="related-footer">
-                  {relatedLimit < relatedPapers.length ? (
-                    <button type="button" className="button-primary" onClick={handleLoadMoreRelated} disabled={relatedMoreLoading}>
-                      {relatedMoreLoading ? <><span className="spinner" /> Loading more...</> : "Show More"}
-                    </button>
-                  ) : (
-                    <span className="related-end">No more related papers.</span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <div className="related-panel">
+        <button type="button" className="text-button" onClick={handleRelatedClick}>
+          {relatedOpen ? "Hide Related Papers" : "Related Papers"}
+        </button>
+        {relatedOpen && (
+          <div className="related-content">
+            {relatedLoading && (
+              <div className="related-loading">
+                <span className="spinner" /> Finding Related Papers...
+              </div>
+            )}
+            {relatedError && <p className="related-error">{relatedError}</p>}
+            {relatedVisiblePapers.length > 0 && (
+              <div className="results-list related-list">
+                {relatedVisiblePapers.map((relatedPaper, relIndex) => {
+                  const relatedIndex = `${index}-rel-${relIndex}`;
+                  return (
+                    <PaperCard
+                      key={relatedIndex}
+                      paper={relatedPaper}
+                      index={relatedIndex}
+                      generateSummary={generateSummary}
+                      summaries={summaries}
+                      loadingSummary={loadingSummary}
+                      savedPapers={savedPapers}
+                      onSavePaper={onSavePaper}
+                      onCompare={onCompare}
+                      onCitation={onCitation}
+                      onCitationCount={onCitationCount}
+                      onTranslate={onTranslate}
+                      onResearchGaps={onResearchGaps}
+                      addToast={addToast}
+                      isRelated={true}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {relatedPapers.length > 0 && !relatedLoading && (
+              <div className="related-footer">
+                {relatedLimit < relatedPapers.length ? (
+                  <button type="button" className="button-primary" onClick={handleLoadMoreRelated} disabled={relatedMoreLoading}>
+                    {relatedMoreLoading ? <><span className="spinner" /> Loading more...</> : "Show More"}
+                  </button>
+                ) : (
+                  <span className="related-end">No more related papers.</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </article>
   );
 }
@@ -1905,7 +1509,6 @@ function App() {
   const [topic, setTopic] = useState("");
   const [papers, setPapers] = useState([]);
   const [page, setPage] = useState("search");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState(null);
   const [summaries, setSummaries] = useState({});
@@ -1929,7 +1532,7 @@ function App() {
   const [translateOpen, setTranslateOpen] = useState(false);
   const [translatePaper, setTranslatePaper] = useState(null);
   const [translateSourceSummary, setTranslateSourceSummary] = useState(null);
-  const [translateLanguage, setTranslateLanguage] = useState("Urdu");
+  const [translateLanguage, setTranslateLanguage] = useState("English");
   const [translatedSummary, setTranslatedSummary] = useState(null);
   const [translateLoading, setTranslateLoading] = useState(false);
   const [translateError, setTranslateError] = useState(null);
@@ -1938,23 +1541,10 @@ function App() {
   const [researchGapsLoading, setResearchGapsLoading] = useState(false);
   const [researchGapsError, setResearchGapsError] = useState(null);
 
-  const translateRequestRef = useRef(0);
-
-  const TRANSLATE_LANGUAGES = ["Urdu", "Arabic", "French", "German", "Spanish", "Chinese"];
+  const TRANSLATE_LANGUAGES = ["English", "Urdu", "Arabic", "French", "German", "Spanish", "Chinese"];
 
   useEffect(() => {
     setSavedPapers(loadSavedPapers());
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 760) {
-        setMobileMenuOpen(false);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -2013,7 +1603,7 @@ function App() {
       try {
         response = await fetch(`${getApiBase()}/citation-count?${params.toString()}`);
       } catch {
-        response = await fetch(`http://127.0.0.1:8000/citation-count?${params.toString()}`);
+        response = await fetch(`${getApiBase()}/citation-count?${params.toString()}`);
       }
       if (!response.ok) {
         throw new Error("Unable to retrieve citation information.");
@@ -2033,7 +1623,6 @@ function App() {
   };
 
   const runTranslate = async (summary, language) => {
-    const requestId = ++translateRequestRef.current;
     setTranslateLoading(true);
     setTranslateError(null);
     setTranslatedSummary(null);
@@ -2046,7 +1635,7 @@ function App() {
           body: JSON.stringify({ summary, language }),
         });
       } catch {
-        response = await fetch("http://127.0.0.1:8000/translate", {
+        response = await fetch(`${getApiBase()}/translate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ summary, language }),
@@ -2059,19 +1648,13 @@ function App() {
       if (!data.translated) {
         throw new Error("Translation failed.");
       }
-      if (translateRequestRef.current === requestId) {
-        setTranslatedSummary(data.translated);
-      }
+      setTranslatedSummary(data.translated);
     } catch {
-      if (translateRequestRef.current === requestId) {
-        setTranslatedSummary(null);
-        setTranslateError("Translation failed.");
-        addToast("Translation failed.");
-      }
+      setTranslatedSummary(null);
+      setTranslateError("Translation failed.");
+      addToast("Translation failed.");
     } finally {
-      if (translateRequestRef.current === requestId) {
-        setTranslateLoading(false);
-      }
+      setTranslateLoading(false);
     }
   };
 
@@ -2080,14 +1663,13 @@ function App() {
       addToast("Please generate AI Summary first.");
       return;
     }
-    const initialLanguage = TRANSLATE_LANGUAGES[0];
     setTranslatePaper(paper);
     setTranslateSourceSummary(summary);
-    setTranslateLanguage(initialLanguage);
+    setTranslateLanguage("English");
     setTranslatedSummary(null);
     setTranslateError(null);
     setTranslateOpen(true);
-    runTranslate(summary, initialLanguage);
+    runTranslate(summary, "English");
   };
 
   const handleTranslateLanguageChange = (language) => {
@@ -2120,7 +1702,7 @@ function App() {
           body: JSON.stringify(body),
         });
       } catch {
-        response = await fetch("http://127.0.0.1:8000/research-gaps", {
+        response = await fetch(`${getApiBase()}/research-gaps`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -2200,7 +1782,7 @@ function App() {
         throw new Error('Paper abstract unavailable.');
       }
 
-      const response = await fetch('http://127.0.0.1:8000/compare', {
+      const response = await fetch(`${getApiBase()}/compare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -2263,21 +1845,9 @@ function App() {
   };
 
   const fetchPaperDetails = async (title) => {
-    const backendHost = window.location.hostname || "127.0.0.1";
-    const urlCandidate1 = `http://${backendHost}:8000/search?topic=${encodeURIComponent(title)}`;
-    const urlCandidate2 = `http://127.0.0.1:8000/search?topic=${encodeURIComponent(title)}`;
-
-    let response = null;
-    try {
-      response = await fetch(urlCandidate1);
-    } catch (err1) {
-      try {
-        response = await fetch(urlCandidate2);
-      } catch (err2) {
-        throw err2 || err1;
-      }
-    }
-
+    const response = await fetch(
+    `${getApiBase()}/search?topic=${encodeURIComponent(title)}`
+);
     if (!response.ok) {
       throw new Error("Unable to fetch paper details.");
     }
@@ -2315,7 +1885,7 @@ function App() {
         throw new Error("Paper abstract unavailable.");
       }
 
-      const response = await fetch("http://127.0.0.1:8000/summary", {
+      const response = await fetch(`${getApiBase()}/summary`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2370,21 +1940,10 @@ function App() {
       setStatus("searching");
       setError(null);
 
-      const backendHost = window.location.hostname || "127.0.0.1";
-      const urlCandidate1 = `http://${backendHost}:8000/search?topic=${encodeURIComponent(trimmedTopic)}`;
-      const urlCandidate2 = `http://127.0.0.1:8000/search?topic=${encodeURIComponent(trimmedTopic)}`;
-
-      let response = null;
-      try {
-        response = await fetch(urlCandidate1);
-      } catch (err1) {
-        try {
-          response = await fetch(urlCandidate2);
-        } catch (err2) {
-          throw err2 || err1;
-        }
-      }
-
+      const response = await fetch(
+    `${getApiBase()}/search?topic=${encodeURIComponent(trimmedTopic)}`
+);
+   
       if (!response.ok) {
         setError(`Request failed: ${response.status}`);
         setStatus("error");
@@ -2400,56 +1959,31 @@ function App() {
 
       setPapers(data);
       setStatus("done");
-    } catch {
-      setError("We couldn't fetch papers right now. Please try again.");
-      setStatus("error");
+    } catch (err) {
+    console.error("Search error:", err);
+
+    setError(`${err?.name}: ${err?.message}`);
+
+    setStatus("error");
     }
   };
 
   return (
     <div className="app-shell">
       <header className="top-navigation">
-        <div className="brand">
-          <span className="brand-logo" aria-hidden="true">
-            <img src="/researchmind-logo.svg" alt="" />
-          </span>
-          <span className="brand-text">ResearchMind</span>
-        </div>
-
-        <div className="top-navigation__actions">
-          <nav className="top-navigation__nav" aria-label="Primary">
-            <button type="button" className={`top-navigation__item ${page === "search" ? "top-navigation__item--active" : ""}`} onClick={() => { setPage("search"); setMobileMenuOpen(false); }}>Home</button>
-            <button type="button" className={`top-navigation__item ${page === "saved" ? "top-navigation__item--active" : ""}`} onClick={() => { setPage("saved"); setMobileMenuOpen(false); }}>Saved Papers</button>
-          </nav>
-
-          <button
-            type="button"
-            className="top-navigation__mobile-toggle"
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-nav-panel"
-            aria-label="Toggle navigation"
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-        </div>
-
-        {mobileMenuOpen && (
-          <div id="mobile-nav-panel" className="top-navigation__mobile-panel" role="navigation" aria-label="Mobile navigation">
-            <button type="button" className={`top-navigation__item ${page === "search" ? "top-navigation__item--active" : ""}`} onClick={() => { setPage("search"); setMobileMenuOpen(false); }}>Home</button>
-            <button type="button" className={`top-navigation__item ${page === "saved" ? "top-navigation__item--active" : ""}`} onClick={() => { setPage("saved"); setMobileMenuOpen(false); }}>Saved Papers</button>
-          </div>
-        )}
+        <div className="brand">ResearchMind AI</div>
+        <nav className="top-navigation__nav">
+          <button type="button" className={`top-navigation__item ${page === "search" ? "top-navigation__item--active" : ""}`} onClick={() => setPage("search")}>Home</button>
+          <button type="button" className={`top-navigation__item ${page === "saved" ? "top-navigation__item--active" : ""}`} onClick={() => setPage("saved")}>Saved Papers</button>
+        </nav>
       </header>
 
       <section className="hero full-width">
         <div className="hero-inner">
-          <p className="eyebrow">ResearchMind</p>
-          <h1>AI-Powered Research Assistant</h1>
+          <p className="eyebrow">ResearchMind AI</p>
+          <h1>Discover relevant papers in seconds</h1>
           <p className="hero-subtitle">
-            Discover, understand, and compare research papers with AI.
+            Search millions of research papers and generate AI-powered summaries, insights, and related work.
           </p>
 
           {page === "search" && (
@@ -2571,7 +2105,6 @@ function App() {
       <TranslateModal
         open={translateOpen}
         onClose={() => {
-          translateRequestRef.current += 1;
           setTranslateOpen(false);
           setTranslatedSummary(null);
           setTranslateError(null);
