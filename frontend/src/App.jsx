@@ -518,18 +518,11 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
     return true;
   };
 
-  const shareViaEmail = () => {
-    if (!requireSummary()) return false;
-    const subject = `Research Paper Summary - ${paper.title || "Untitled paper"}`;
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMessage)}`;
-    return true;
-  };
-
   const handleNativeShare = async () => {
     if (!requireSummary()) return;
 
     if (!navigator.share) {
-      shareViaEmail();
+      addToast("Native sharing is not supported in this browser.");
       setShareMenuOpen(false);
       return;
     }
@@ -542,7 +535,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
       addToast("✓ Shared Successfully");
     } catch (err) {
       if (err && err.name === "AbortError") return;
-      shareViaEmail();
+      addToast("Sharing was cancelled.");
     } finally {
       setShareMenuOpen(false);
     }
@@ -557,12 +550,6 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
     if (action === "whatsapp") {
       window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, "_blank", "noopener,noreferrer");
       addToast("✓ Shared Successfully");
-      setShareMenuOpen(false);
-      return;
-    }
-
-    if (action === "email") {
-      shareViaEmail();
       setShareMenuOpen(false);
       return;
     }
@@ -694,8 +681,7 @@ function AISummaryCard({ paper, summary, loading, addToast, onTranslate, onResea
             </button>
             {shareMenuOpen && (
               <div className="share-menu">
-                <button type="button" className="share-menu-item" onClick={() => handleShareAction("whatsapp")}>Share via WhatsApp</button>
-                <button type="button" className="share-menu-item" onClick={() => handleShareAction("email")}>Share via Email</button>
+                <button type="button" className="share-menu-item" onClick={() => handleShareAction("whatsapp")}>WhatsApp</button>
                 <button type="button" className="share-menu-item" onClick={handleNativeShare}>
                   Native Share
                 </button>
@@ -718,13 +704,79 @@ function ResearchMentorChat({ paper, summary, addToast }) {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("");
+  const [voiceSupported, setVoiceSupported] = useState(true);
+  const [autoFollow, setAutoFollow] = useState(true);
   const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    const chatContainer = chatContainerRef.current;
+    if (!chatContainer) return undefined;
+
+    const handleScroll = () => {
+      const distanceFromBottom = chatContainer.scrollHeight - (chatContainer.scrollTop + chatContainer.clientHeight);
+      setAutoFollow(distanceFromBottom <= 80);
+    };
+
+    chatContainer.addEventListener("scroll", handleScroll, { passive: true });
+    return () => chatContainer.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!autoFollow || !chatContainerRef.current || !chatEndRef.current) return;
+
+    chatContainerRef.current.scrollTo({
+      top: chatContainerRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [chatHistory, chatLoading, autoFollow]);
+
+  useEffect(() => {
+    const SpeechRecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionConstructor) {
+      setVoiceSupported(false);
+      return undefined;
     }
-  }, [chatHistory, chatLoading]);
+
+    const recognition = new SpeechRecognitionConstructor();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .filter((result) => result.isFinal)
+        .slice(event.resultIndex)
+        .map((result) => result[0].transcript)
+        .join(" ")
+        .trim();
+
+      if (transcript) {
+        setChatInput((prev) => (prev ? `${prev} ${transcript}`.trim() : transcript));
+      }
+    };
+
+    recognition.onerror = () => {
+      setVoiceStatus("Voice input unavailable");
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setVoiceStatus("");
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.stop();
+      recognitionRef.current = null;
+    };
+  }, []);
 
   const sendChat = async (message) => {
     const trimmed = message.trim();
@@ -736,8 +788,6 @@ function ResearchMentorChat({ paper, summary, addToast }) {
     setChatError(null);
 
     try {
-   
-      
       const response = await fetch(`${getApiBase()}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -772,30 +822,66 @@ function ResearchMentorChat({ paper, summary, addToast }) {
     }
   };
 
-  const promptChips = ["Explain Simply", "Compare with CNN", "Compare with Transformers", "Compare with ViT", "Compare with ResNet"];
+  const toggleVoiceInput = () => {
+    const recognition = recognitionRef.current;
+
+    if (!recognition) {
+      if (!voiceSupported) {
+        addToast("Voice input is not supported in this browser.");
+      }
+      return;
+    }
+
+    if (isListening) {
+      recognition.stop();
+      setIsListening(false);
+      setVoiceStatus("Voice input stopped");
+      window.setTimeout(() => setVoiceStatus(""), 1200);
+      return;
+    }
+
+    setVoiceStatus("Listening...");
+    setIsListening(true);
+
+    try {
+      recognition.start();
+    } catch {
+      setIsListening(false);
+      setVoiceStatus("Voice input unavailable");
+    }
+  };
+
+  const copyMessage = async (message) => {
+    if (!navigator.clipboard) return;
+    await navigator.clipboard.writeText(message);
+    addToast("Copied!");
+  };
 
   const chatMessages = chatHistory.map((item, idx) => (
     <div key={`${item.role}-${idx}`} className={`chat-message chat-message--${item.role}`}>
-      <div className="chat-message__bubble">
-        <div className="chat-message__role">{item.role === "assistant" ? "ResearchMind AI" : "You"}</div>
-        <p>{item.message}</p>
+      <div className="chat-message__bubble-wrap">
+        <div className="chat-message__bubble">
+          <div className="chat-message__role">{item.role === "assistant" ? "ResearchMind AI" : "You"}</div>
+          <p>{item.message}</p>
+        </div>
+        {item.role === "assistant" && (
+          <button type="button" className="chat-message__action" onClick={() => copyMessage(item.message)} title="Copy" aria-label="Copy response">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 8h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Zm-3 3H4a1 1 0 0 0-1 1v7a2 2 0 0 0 2 2h2v-2H5v-7h1v-2Z" />
+            </svg>
+            <span>Copy</span>
+          </button>
+        )}
       </div>
     </div>
   ));
-
-  const copyLatestResponse = async () => {
-    const latest = [...chatHistory].reverse().find((item) => item.role === "assistant");
-    if (!latest || !navigator.clipboard) return;
-    await navigator.clipboard.writeText(latest.message);
-    addToast("✓ Response Copied");
-  };
 
   return (
     <div className="assistant-chat chat-panel">
       <h4 className="assistant-workspace__section-title">Research Chat</h4>
       <div className="chat-panel__body">
-        <div className="chat-history" aria-live="polite">
-          {chatMessages.length > 0 ? chatMessages : <p className="chat-empty">Start by asking a question or using one of the suggested prompts.</p>}
+        <div className="chat-history" ref={chatContainerRef} aria-live="polite">
+          {chatMessages.length > 0 ? chatMessages : <p className="chat-empty">Start by asking a question about this paper.</p>}
           {chatLoading && (
             <div className="chat-loading compact-loading">
               <span className="spinner" aria-hidden="true" />
@@ -806,32 +892,45 @@ function ResearchMentorChat({ paper, summary, addToast }) {
           <div ref={chatEndRef} />
         </div>
 
-        <div className="chat-suggestions">
-          <p className="chat-suggestions__label">Suggested Questions</p>
-          <div className="chat-prompt-chips">
-            {promptChips.slice(0, 4).map((chip) => (
-              <button key={chip} type="button" className="chip-button" onClick={() => sendChat(chip)}>
-                {chip}
-              </button>
-            ))}
+        <div className="chat-composer">
+          <div className="chat-composer__input">
+            <textarea
+              value={chatInput}
+              onChange={(event) => setChatInput(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask anything about this paper..."
+              rows={1}
+            />
+          </div>
+          <div className="chat-composer__actions">
+            <button type="button" className={`mic-button ${isListening ? "mic-button--listening" : ""}`} onClick={toggleVoiceInput} aria-label="Toggle voice input">
+              {isListening ? "🎙" : "🎤"}
+            </button>
+            <button type="button" className="button-primary" onClick={() => sendChat(chatInput)} disabled={chatLoading || !chatInput.trim()}>
+              Send
+            </button>
           </div>
         </div>
-
-        <div className="chat-composer">
-          <textarea
-            value={chatInput}
-            onChange={(event) => setChatInput(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask anything about this paper..."
-            rows={1}
-          />
-          <button type="button" className="button-primary" onClick={() => sendChat(chatInput)} disabled={chatLoading || !chatInput.trim()}>
-            Send
-          </button>
-          <button type="button" className="button-secondary" onClick={copyLatestResponse} disabled={!chatHistory.some((item) => item.role === "assistant")}>
-            Copy Response
-          </button>
-        </div>
+        {voiceSupported && voiceStatus && (
+          <div className={`voice-status ${isListening ? "voice-status--processing" : ""}`}>
+            {isListening ? (
+              <>
+                <span className="voice-status__bars" aria-hidden="true">
+                  <span className="voice-status__bar" />
+                  <span className="voice-status__bar" />
+                  <span className="voice-status__bar" />
+                  <span className="voice-status__bar" />
+                </span>
+                <span>{voiceStatus}</span>
+              </>
+            ) : (
+              <>
+                <span className="voice-status__check">✓</span>
+                <span>{voiceStatus}</span>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1179,23 +1278,30 @@ function TranslateModal({ open, onClose, paper, language, onLanguageChange, tran
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <div className="modal-header">
-          <h3>Translate Summary</h3>
+        <div className="modal-header modal-header--beige">
+          <div>
+            <h3>Translate Summary</h3>
+          </div>
           <button type="button" className="text-button" onClick={onClose}>Close</button>
         </div>
         {paper?.title && <p className="feature-modal-subtitle">{paper.title}</p>}
 
         <div className="language-select-row">
-          <label htmlFor="translate-language">Language</label>
-          <select
-            id="translate-language"
-            value={language}
-            onChange={(event) => onLanguageChange(event.target.value)}
-          >
+          <p className="language-select-label">Choose a language</p>
+          <div className="language-options" role="radiogroup" aria-label="Select translation language">
             {languages.map((lang) => (
-              <option key={lang} value={lang}>{lang}</option>
+              <label key={lang} className={`language-option ${language === lang ? "language-option--active" : ""}`}>
+                <input
+                  type="radio"
+                  name="translate-language"
+                  value={lang}
+                  checked={language === lang}
+                  onChange={() => onLanguageChange(lang)}
+                />
+                <span className="language-option__radio">{lang}</span>
+              </label>
             ))}
-          </select>
+          </div>
         </div>
 
         {loading && (
@@ -1238,8 +1344,10 @@ function ResearchGapsModal({ open, onClose, data, loading, error }) {
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <div className="modal-header">
-          <h3>Research Gaps</h3>
+        <div className="modal-header modal-header--beige">
+          <div>
+            <h3>Research Gaps</h3>
+          </div>
           <button type="button" className="text-button" onClick={onClose}>Close</button>
         </div>
 
@@ -1371,7 +1479,7 @@ function PaperCard({
   const handleLoadMoreRelated = async () => {
     setRelatedMoreLoading(true);
     await new Promise((resolve) => window.setTimeout(resolve, 400));
-    setRelatedLimit((prev) => Math.min(prev + 5, relatedPapers.length));
+    setRelatedLimit((prev) => Math.min(prev + 3, relatedPapers.length));
     setRelatedMoreLoading(false);
   };
 
@@ -1449,58 +1557,60 @@ function PaperCard({
         </div>
       )}
 
-      <div className="related-panel">
-        <button type="button" className="text-button" onClick={handleRelatedClick}>
-          {relatedOpen ? "Hide Related Papers" : "Related Papers"}
-        </button>
-        {relatedOpen && (
-          <div className="related-content">
-            {relatedLoading && (
-              <div className="related-loading">
-                <span className="spinner" /> Finding Related Papers...
-              </div>
-            )}
-            {relatedError && <p className="related-error">{relatedError}</p>}
-            {relatedVisiblePapers.length > 0 && (
-              <div className="results-list related-list">
-                {relatedVisiblePapers.map((relatedPaper, relIndex) => {
-                  const relatedIndex = `${index}-rel-${relIndex}`;
-                  return (
-                    <PaperCard
-                      key={relatedIndex}
-                      paper={relatedPaper}
-                      index={relatedIndex}
-                      generateSummary={generateSummary}
-                      summaries={summaries}
-                      loadingSummary={loadingSummary}
-                      savedPapers={savedPapers}
-                      onSavePaper={onSavePaper}
-                      onCompare={onCompare}
-                      onCitation={onCitation}
-                      onCitationCount={onCitationCount}
-                      onTranslate={onTranslate}
-                      onResearchGaps={onResearchGaps}
-                      addToast={addToast}
-                      isRelated={true}
-                    />
-                  );
-                })}
-              </div>
-            )}
-            {relatedPapers.length > 0 && !relatedLoading && (
-              <div className="related-footer">
-                {relatedLimit < relatedPapers.length ? (
-                  <button type="button" className="button-primary" onClick={handleLoadMoreRelated} disabled={relatedMoreLoading}>
-                    {relatedMoreLoading ? <><span className="spinner" /> Loading more...</> : "Show More"}
-                  </button>
-                ) : (
-                  <span className="related-end">No more related papers.</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      {!isRelated && (
+        <div className="related-panel">
+          <button type="button" className="text-button" onClick={handleRelatedClick}>
+            {relatedOpen ? "Hide Related Papers" : "Related Papers"}
+          </button>
+          {relatedOpen && (
+            <div className="related-content">
+              {relatedLoading && (
+                <div className="related-loading">
+                  <span className="spinner" /> Finding Related Papers...
+                </div>
+              )}
+              {relatedError && <p className="related-error">{relatedError}</p>}
+              {relatedVisiblePapers.length > 0 && (
+                <div className="results-list related-list">
+                  {relatedVisiblePapers.map((relatedPaper, relIndex) => {
+                    const relatedIndex = `${index}-rel-${relIndex}`;
+                    return (
+                      <PaperCard
+                        key={relatedIndex}
+                        paper={relatedPaper}
+                        index={relatedIndex}
+                        generateSummary={generateSummary}
+                        summaries={summaries}
+                        loadingSummary={loadingSummary}
+                        savedPapers={savedPapers}
+                        onSavePaper={onSavePaper}
+                        onCompare={onCompare}
+                        onCitation={onCitation}
+                        onCitationCount={onCitationCount}
+                        onTranslate={onTranslate}
+                        onResearchGaps={onResearchGaps}
+                        addToast={addToast}
+                        isRelated={true}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+              {relatedPapers.length > 0 && !relatedLoading && (
+                <div className="related-footer">
+                  {relatedLimit < relatedPapers.length ? (
+                    <button type="button" className="button-primary" onClick={handleLoadMoreRelated} disabled={relatedMoreLoading}>
+                      {relatedMoreLoading ? <><span className="spinner" /> Loading more...</> : "Show More"}
+                    </button>
+                  ) : (
+                    <span className="related-end">No more related papers.</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </article>
   );
 }
@@ -1532,7 +1642,7 @@ function App() {
   const [translateOpen, setTranslateOpen] = useState(false);
   const [translatePaper, setTranslatePaper] = useState(null);
   const [translateSourceSummary, setTranslateSourceSummary] = useState(null);
-  const [translateLanguage, setTranslateLanguage] = useState("English");
+  const [translateLanguage, setTranslateLanguage] = useState("Urdu");
   const [translatedSummary, setTranslatedSummary] = useState(null);
   const [translateLoading, setTranslateLoading] = useState(false);
   const [translateError, setTranslateError] = useState(null);
@@ -1541,7 +1651,7 @@ function App() {
   const [researchGapsLoading, setResearchGapsLoading] = useState(false);
   const [researchGapsError, setResearchGapsError] = useState(null);
 
-  const TRANSLATE_LANGUAGES = ["English", "Urdu", "Arabic", "French", "German", "Spanish", "Chinese"];
+  const TRANSLATE_LANGUAGES = ["Urdu", "Arabic", "French", "German", "Spanish", "Chinese"];
 
   useEffect(() => {
     setSavedPapers(loadSavedPapers());
@@ -1665,11 +1775,11 @@ function App() {
     }
     setTranslatePaper(paper);
     setTranslateSourceSummary(summary);
-    setTranslateLanguage("English");
+    setTranslateLanguage(TRANSLATE_LANGUAGES[0]);
     setTranslatedSummary(null);
     setTranslateError(null);
     setTranslateOpen(true);
-    runTranslate(summary, "English");
+    runTranslate(summary, TRANSLATE_LANGUAGES[0]);
   };
 
   const handleTranslateLanguageChange = (language) => {
@@ -1983,7 +2093,7 @@ function App() {
           <p className="eyebrow">ResearchMind AI</p>
           <h1>Discover relevant papers in seconds</h1>
           <p className="hero-subtitle">
-            Search millions of research papers and generate AI-powered summaries, insights, and related work.
+            AI-powered research search, summaries and insights.
           </p>
 
           {page === "search" && (
