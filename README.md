@@ -24,11 +24,12 @@ The project aims to make research faster, smarter, and more accessible.
 
 - 🔍 Search academic papers
 - 🤖 AI-powered paper summaries
+- 💬 AI Research Chat
 - 📊 Compare multiple research papers
 - 📚 Automatic citation generation
 - 📈 Citation count tracking
 - 🧩 Research gap analysis
-- 🌍 Translate research papers
+- 🌍 Translate AI summaries
 - 🔗 Related paper recommendations
 - 💾 Save favorite papers
 - 📄 Built-in PDF viewer
@@ -60,6 +61,11 @@ The project aims to make research faster, smarter, and more accessible.
 
 - arXiv API
 
+## Deployment
+
+- Vercel (Frontend)
+- Render (Backend)
+
 ---
 
 # 📂 Project Structure
@@ -83,9 +89,21 @@ ResearchMind-AI/
 │   ├── vite.config.js
 │   └── ...
 │
-├── .gitignore
-└── README.md
+├── README.md
+└── .gitignore
 ```
+
+---
+
+# 🚀 Live Demo
+
+### 🌐 Frontend
+
+https://research-mind-ai-ten.vercel.app
+
+### ⚙️ Backend API
+
+https://researchmind-ai-89gs.onrender.com
 
 ---
 
@@ -109,7 +127,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Backend runs at:
+Backend runs at
 
 ```
 http://127.0.0.1:8000
@@ -127,7 +145,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs at:
+Frontend runs at
 
 ```
 http://localhost:5173
@@ -143,13 +161,62 @@ Create a `.env` file inside the **backend** folder.
 GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 ```
 
-⚠️ Never commit your actual API key to GitHub.
+
 
 ---
 
 # 📸 Screenshots
 
-Screenshots will be added after deployment.
+## 🏠 Homepage
+
+![Homepage](images/homepage.jpeg)
+
+---
+
+## 🔍 Search Results
+
+![Search Results](images/search-results.jpeg)
+
+---
+
+## 🤖 AI Summary
+
+![AI Summary](images/ai-summary.jpeg)
+
+---
+
+## 💬 AI Research Chat
+
+![AI Research Chat](images/ai-chat.jpeg)
+
+---
+
+## 💡 Research Gap Analysis
+
+![Research Gap Analysis](images/research-gap.jpeg)
+
+---
+
+## 🌍 Translation
+
+![Translation](images/translation.jpeg)
+
+---
+
+## 📚 Related Papers
+
+![Related Papers](images/related-papers.jpeg)
+
+---
+
+## ❤️ Saved Papers
+![Saved Papers](images/saved-papers.jpeg)
+
+---
+
+## 📱 Mobile Responsive Interface
+
+![Mobile UI](images/mobile-ui.jpeg)
 
 ---
 
@@ -161,6 +228,7 @@ Screenshots will be added after deployment.
 - Academic paper discovery
 - AI-assisted research workflow
 - Responsive desktop and mobile design
+- Fully deployed using Vercel and Render
 
 ---
 
@@ -176,24 +244,22 @@ Screenshots will be added after deployment.
 
 ---
 
-# 🤝 Contributing
-
-Contributions are welcome.
-
-If you'd like to improve ResearchMind AI, feel free to fork the repository, create a feature branch, and submit a pull request.
-
----
-
 # 👨‍💻 Author
 
 **Rohan Munir**
 
 BS Computer Science Student
 
-GitHub: https://github.com/Rohanmunir16
+GitHub:
+https://github.com/Rohanmunir16
+
+LinkedIn:
+https://www.linkedin.com/in/rohan-munir-ab92a3331/
 
 ---
 
-## ⭐ Support
+# ⭐ Support
 
 If you found this project helpful, consider giving it a **⭐ Star** on GitHub.
+
+It helps support the project and encourages future development.
